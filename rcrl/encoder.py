@@ -10,22 +10,15 @@ def mlp(input_s, output_s, hidden_szs, activation=nn.ReLU):
 
     return nn.Sequential(*layers)
 
-
 class Encoder(nn.Module):
-    def __init__(self, obs_dim, feature_dim, hidden_szs=[64,64]):
+    def __init__(self, obs_shape, feature_dim, hidden_szs=[64,64]):
         super().__init__()    # don't miss the parent class initialization
-        self.fc = mlp(obs_dim, feature_dim, hidden_szs)
+        self.fc = mlp(obs_shape, feature_dim, hidden_szs)
 
     def forward(self, x):
         return self.fc(x)
 
-# print(mlp(10, 20, [64,64]))
-# enc = Encoder(10, 20)
-
-class Constrain(nn.Module):
-    def __init__(self, obs_dim, feature_dim, hidden_szs=[64,64]):
-        super().__init__()    # don't miss the parent class initialization
-        self.fc = mlp(obs_dim, feature_dim, hidden_szs)
-
-    def forward(self, x):
-        return self.fc(x)
+def make_encoder(
+    obs_shape, feature_dim
+):
+    return Encoder(obs_shape=obs_shape, feature_dim=feature_dim)

@@ -1,7 +1,8 @@
-from encoder import Encoder
+from rcrl.rcsac_agent import RepConstraintSACAgent
+from rcrl.encoder import Encoder
 import gym
 import torch
-
+import argparse
 
 feature_dim = 4
 env_name="Walker2d-v2"
@@ -20,3 +21,25 @@ def test():
     print(x.shape)
     zeta = enc(x)
     print(obs, zeta)
+
+def train():
+    env = gym.make(env_name)
+    agent = RepConstraintSACAgent(
+        obs_shape=env.observation_space.shape,
+        action_shape=env.action_space.shape,
+    )
+    agent.train()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test', action='store_true', help='')
+    args = parser.parse_args()
+
+    if args.test:
+        test()
+        return
+
+    train()
+    
+if __name__ == "__main__":
+    main()
