@@ -52,31 +52,32 @@ class RepConstraintSACAgent(object):
         self.bisim_coef = bisim_coef
 
         self.actor = Actor(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters, encoder_stride
+            obs_shape, action_shape, encoder_feature_dim, 
+            hidden_dim, num_layers,
+            actor_log_std_min, actor_log_std_max
         ).to(device)
 
         self.critic = Critic(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, num_layers, num_filters, encoder_stride
+            obs_shape, action_shape, encoder_feature_dim, 
+            hidden_dim, num_layers
         ).to(device)
 
         self.critic_target = Critic(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, num_layers, num_filters, encoder_stride
+            obs_shape, action_shape, encoder_feature_dim, 
+            hidden_dim, num_layers
         ).to(device)
 
         self.critic_target.load_state_dict(self.critic.state_dict())
 
-        self.reward_decoder = nn.Sequential(
-            nn.Linear(encoder_feature_dim, 512),
-            nn.LayerNorm(512),
-            nn.ReLU(),
-            nn.Linear(512, 1)).to(device)
+        # self.reward_decoder = nn.Sequential(
+        #     nn.Linear(encoder_feature_dim, 512),
+        #     nn.LayerNorm(512),
+        #     nn.ReLU(),
+        #     nn.Linear(512, 1)).to(device)
 
+        # TODO: double or single?
         # tie encoders between actor and critic
-        self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
+        # self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
 
         self.log_alpha = torch.tensor(np.log(init_temperature)).to(device)
         self.log_alpha.requires_grad = True
@@ -96,22 +97,17 @@ class RepConstraintSACAgent(object):
             [self.log_alpha], lr=alpha_lr, betas=(alpha_beta, 0.999)
         )
 
-        # optimizer for decoder
-        self.decoder_optimizer = torch.optim.Adam(
-            list(self.reward_decoder.parameters()) + list(self.transition_model.parameters()),
-            lr=decoder_lr,
-            weight_decay=decoder_weight_lambda
-        )
-
         # optimizer for critic encoder for reconstruction loss
         self.encoder_optimizer = torch.optim.Adam(
             self.critic.encoder.parameters(), lr=encoder_lr
         )
 
+        # set modules in training mode
         self.train()
         self.critic_target.train()
 
     def train(self, training=True):
+        # function overloading
         self.training = training
         self.actor.train(training)
         self.critic.train(training)
@@ -288,3 +284,10 @@ class RepConstraintSACAgent(object):
                 tau * param.data + (1 - tau) * target_param.data
             )
 
+
+def main():
+    agent = RepConstraintSACAgent(obs_shape=17, action_shape=4)
+    print(agent)
+
+if __name__ == "__main__":
+    main()

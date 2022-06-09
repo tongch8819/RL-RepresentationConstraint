@@ -44,14 +44,17 @@ def weight_init(m):
 
 
 class Actor(nn.Module):
-    """MLP actor network."""
+    """MLP actor network.
+    encoder + mlp    
+    """
     def __init__(
-        self, obs_shape, action_shape, hidden_dim, encoder_type,
-        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters, stride
+        self, obs_shape, action_shape, encoder_feature_dim,
+        hidden_dim, num_layers,
+        log_std_min, log_std_max 
     ):
         super().__init__()
 
-        self.encoder = make_encoder(obs_shape, encoder_feature_dim)
+        self.encoder = make_encoder(obs_shape, encoder_feature_dim, [hidden_dim] * num_layers)
 
         self.log_std_min = log_std_min
         self.log_std_max = log_std_max
@@ -59,7 +62,8 @@ class Actor(nn.Module):
         self.trunk = nn.Sequential(
             nn.Linear(self.encoder.feature_dim, hidden_dim), nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, 2 * action_shape[0])
+            # nn.Linear(hidden_dim, 2 * action_shape[0])  ???
+            nn.Linear(hidden_dim, action_shape)
         )
 
         self.outputs = dict()
@@ -131,21 +135,20 @@ class QFunction(nn.Module):
 class Critic(nn.Module):
     """Critic network, employes two q-functions."""
     def __init__(
-        self, obs_shape, action_shape, hidden_dim, encoder_type,
-        encoder_feature_dim, num_layers, num_filters, stride
+        self, obs_shape, action_shape, encoder_feature_dim,
+        hidden_dim, num_layers
     ):
         super().__init__()
 
         self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, stride
+            obs_shape, encoder_feature_dim, [hidden_dim] * num_layers
         )
 
         self.Q1 = QFunction(
-            self.encoder.feature_dim, action_shape[0], hidden_dim
+            self.encoder.feature_dim, action_shape, hidden_dim
         )
         self.Q2 = QFunction(
-            self.encoder.feature_dim, action_shape[0], hidden_dim
+            self.encoder.feature_dim, action_shape, hidden_dim
         )
 
         self.outputs = dict()
@@ -258,3 +261,18 @@ class ReplayBuffer(object):
             self.curr_rewards[start:end] = payload[4]
             self.not_dones[start:end] = payload[5]
             self.idx = end
+
+def main():
+    actor = Actor(obs_shape=17, action_shape=4, encoder_feature_dim=10,
+        hidden_dim=64, num_layers=3,
+        log_std_min=0.0, log_std_max=1.0)
+    print("Actor")
+    print(actor)
+    critic = Critic(obs_shape=17, action_shape=4, encoder_feature_dim=10,
+        hidden_dim=64, num_layers=3)
+    print("Critic")
+    print(critic)
+
+
+if __name__ == "__main__":
+    main()
