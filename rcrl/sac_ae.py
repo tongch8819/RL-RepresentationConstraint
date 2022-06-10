@@ -62,8 +62,8 @@ class Actor(nn.Module):
         self.trunk = nn.Sequential(
             nn.Linear(self.encoder.feature_dim, hidden_dim), nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
-            # nn.Linear(hidden_dim, 2 * action_shape[0])  ???
-            nn.Linear(hidden_dim, action_shape)
+            nn.Linear(hidden_dim, 2 * action_shape)  # forward output chunk into two parts
+            # nn.Linear(hidden_dim, action_shape)
         )
 
         self.outputs = dict()
@@ -72,7 +72,7 @@ class Actor(nn.Module):
     def forward(
         self, obs, compute_pi=True, compute_log_pi=True, detach_encoder=False
     ):
-        obs = self.encoder(obs, detach=detach_encoder)
+        obs = self.encoder(obs)
 
         mu, log_std = self.trunk(obs).chunk(2, dim=-1)
 
@@ -156,7 +156,8 @@ class Critic(nn.Module):
 
     def forward(self, obs, action, detach_encoder=False):
         # detach_encoder allows to stop gradient propogation to encoder
-        obs = self.encoder(obs, detach=detach_encoder)
+        # obs = self.encoder(obs, detach=detach_encoder)
+        obs = self.encoder(obs)
 
         q1 = self.Q1(obs, action)
         q2 = self.Q2(obs, action)

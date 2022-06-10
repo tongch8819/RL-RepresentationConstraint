@@ -6,10 +6,18 @@ import numpy as np
 import torch
 import argparse
 import os
+import os.path as osp
 import gym
 import time
 import json
 import random
+
+def make_dir(dir_path):
+    try:
+        os.mkdir(dir_path)
+    except OSError:
+        print("Make dir error:", dir_path)
+    return dir_path
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -123,12 +131,13 @@ def main():
     agent = RepConstraintSACAgent(
         obs_shape=env.observation_space.shape[0],
         action_shape=env.action_space.shape[0],
-        device=device
+        device=device,
+        encoder_feature_dim=feature_dim,
     )
 
     L = Logger(args.work_dir)
-    model_dir = ''
-    buffer_dir = ''
+    model_dir = make_dir(osp.join(args.work_dir, 'model'))
+    buffer_dir = make_dir(osp.join(args.work_dir, 'buffer'))
 
     episode, episode_reward, done = 0, 0, True
     start_time = time.time()

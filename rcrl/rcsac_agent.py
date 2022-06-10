@@ -189,36 +189,38 @@ class RepConstraintSACAgent(object):
         batch_size = obs.size(0)
         perm = np.random.permutation(batch_size)
         h2 = h[perm]
+        reward2 = reward[perm]
 
-        with torch.no_grad():
-            # action, _, _, _ = self.actor(obs, compute_pi=False, compute_log_pi=False)
-            pred_next_latent_mu1, pred_next_latent_sigma1 = self.transition_model(torch.cat([h, action], dim=1))
-            # reward = self.reward_decoder(pred_next_latent_mu1)
-            reward2 = reward[perm]
-        if pred_next_latent_sigma1 is None:
-            pred_next_latent_sigma1 = torch.zeros_like(pred_next_latent_mu1)
-        if pred_next_latent_mu1.ndim == 2:  # shape (B, Z), no ensemble
-            pred_next_latent_mu2 = pred_next_latent_mu1[perm]
-            pred_next_latent_sigma2 = pred_next_latent_sigma1[perm]
-        elif pred_next_latent_mu1.ndim == 3:  # shape (B, E, Z), using an ensemble
-            pred_next_latent_mu2 = pred_next_latent_mu1[:, perm]
-            pred_next_latent_sigma2 = pred_next_latent_sigma1[:, perm]
-        else:
-            raise NotImplementedError
+        # with torch.no_grad():
+        #     # action, _, _, _ = self.actor(obs, compute_pi=False, compute_log_pi=False)
+        #     pred_next_latent_mu1, pred_next_latent_sigma1 = self.transition_model(torch.cat([h, action], dim=1))
+        #     # reward = self.reward_decoder(pred_next_latent_mu1)
+        #     reward2 = reward[perm]
+        # if pred_next_latent_sigma1 is None:
+        #     pred_next_latent_sigma1 = torch.zeros_like(pred_next_latent_mu1)
+        # if pred_next_latent_mu1.ndim == 2:  # shape (B, Z), no ensemble
+        #     pred_next_latent_mu2 = pred_next_latent_mu1[perm]
+        #     pred_next_latent_sigma2 = pred_next_latent_sigma1[perm]
+        # elif pred_next_latent_mu1.ndim == 3:  # shape (B, E, Z), using an ensemble
+        #     pred_next_latent_mu2 = pred_next_latent_mu1[:, perm]
+        #     pred_next_latent_sigma2 = pred_next_latent_sigma1[:, perm]
+        # else:
+        #     raise NotImplementedError
 
         z_dist = F.smooth_l1_loss(h, h2, reduction='none')
         r_dist = F.smooth_l1_loss(reward, reward2, reduction='none')
-        if self.transition_model_type == '':
-            transition_dist = F.smooth_l1_loss(pred_next_latent_mu1, pred_next_latent_mu2, reduction='none')
-        else:
-            transition_dist = torch.sqrt(
-                (pred_next_latent_mu1 - pred_next_latent_mu2).pow(2) +
-                (pred_next_latent_sigma1 - pred_next_latent_sigma2).pow(2)
-            )
+        # if self.transition_model_type == '':
+            # transition_dist = F.smooth_l1_loss(pred_next_latent_mu1, pred_next_latent_mu2, reduction='none')
+        # else:
+        #     transition_dist = torch.sqrt(
+        #         (pred_next_latent_mu1 - pred_next_latent_mu2).pow(2) +
+        #         (pred_next_latent_sigma1 - pred_next_latent_sigma2).pow(2)
+        #     )
             # transition_dist  = F.smooth_l1_loss(pred_next_latent_mu1, pred_next_latent_mu2, reduction='none') \
             #     +  F.smooth_l1_loss(pred_next_latent_sigma1, pred_next_latent_sigma2, reduction='none')
 
-        bisimilarity = r_dist + self.discount * transition_dist
+        # bisimilarity = r_dist + self.discount * transition_dist
+        bisimilarity = r_dist
         loss = (z_dist - bisimilarity).pow(2).mean()
         L.log('train_ae/encoder_loss', loss, step)
         return loss
@@ -229,14 +231,15 @@ class RepConstraintSACAgent(object):
         L.log('train/batch_reward', reward.mean(), step)
 
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)
-        transition_reward_loss = self.update_transition_reward_model(obs, action, next_obs, reward, L, step)
+        # transition_reward_loss = self.update_transition_reward_model(obs, action, next_obs, reward, L, step)
         encoder_loss = self.update_encoder(obs, action, reward, L, step)
-        total_loss = self.bisim_coef * encoder_loss + transition_reward_loss
+        # total_loss = self.bisim_coef * encoder_loss + transition_reward_loss
+        total_loss = self.bisim_coef * encoder_loss
         self.encoder_optimizer.zero_grad()
-        self.decoder_optimizer.zero_grad()
+        # self.decoder_optimizer.zero_grad()
         total_loss.backward()
         self.encoder_optimizer.step()
-        self.decoder_optimizer.step()
+        # self.decoder_optimizer.step()
 
         if step % self.actor_update_freq == 0:
             self.update_actor_and_alpha(obs, L, step)
@@ -261,10 +264,10 @@ class RepConstraintSACAgent(object):
         torch.save(
             self.critic.state_dict(), '%s/critic_%s.pt' % (model_dir, step)
         )
-        torch.save(
-            self.reward_decoder.state_dict(),
-            '%s/reward_decoder_%s.pt' % (model_dir, step)
-        )
+        # torch.save(
+            # self.reward_decoder.state_dict(),
+            # '%s/reward_decoder_%s.pt' % (model_dir, step)
+        # )
 
     def load(self, model_dir, step):
         self.actor.load_state_dict(
@@ -273,9 +276,9 @@ class RepConstraintSACAgent(object):
         self.critic.load_state_dict(
             torch.load('%s/critic_%s.pt' % (model_dir, step))
         )
-        self.reward_decoder.load_state_dict(
-            torch.load('%s/reward_decoder_%s.pt' % (model_dir, step))
-        )
+        # self.reward_decoder.load_state_dict(
+            # torch.load('%s/reward_decoder_%s.pt' % (model_dir, step))
+        # )
 
     def soft_update_params(self, net, target_net, tau):
         """Update target network by polyak."""
