@@ -1,0 +1,3 @@
+# LOG_FREQ = 10000
+LOG_FREQ = 20
+

@@ -1,3 +1,4 @@
+from rcrl.constraint import ConstraintNetwork
 from rcrl.sac_ae import Actor, Critic
 
 import numpy as np
@@ -39,7 +40,10 @@ class RepConstraintSACAgent(object):
         decoder_weight_lambda=0.0,
         num_layers=4,
         num_filters=32,
-        bisim_coef=0.5
+        bisim_coef=0.5,
+        constraint_num=5,
+        constraint_lr=1e-3,
+        constraint_rnds=10,
     ):
         self.device = device
         self.discount = discount
@@ -50,6 +54,7 @@ class RepConstraintSACAgent(object):
         self.decoder_update_freq = decoder_update_freq
         self.decoder_latent_lambda = decoder_latent_lambda
         self.bisim_coef = bisim_coef
+        self.constraint_rnds = constraint_rnds
 
         self.actor = Actor(
             obs_shape, action_shape, encoder_feature_dim, 
@@ -65,6 +70,10 @@ class RepConstraintSACAgent(object):
         self.critic_target = Critic(
             obs_shape, action_shape, encoder_feature_dim, 
             hidden_dim, num_layers
+        ).to(device)
+
+        self.constraint_network = ConstraintNetwork(
+            act_dim=action_shape, constraint_dim=constraint_num
         ).to(device)
 
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -101,6 +110,9 @@ class RepConstraintSACAgent(object):
         self.encoder_optimizer = torch.optim.Adam(
             self.critic.encoder.parameters(), lr=encoder_lr
         )
+        self.constraint_network_optimizer = torch.optim.Adam(
+            self.constraint_network.parameters(), lr=constraint_lr,
+        )
 
         # set modules in training mode
         self.train()
@@ -116,20 +128,25 @@ class RepConstraintSACAgent(object):
     def alpha(self):
         return self.log_alpha.exp()
 
-    def select_action(self, obs):
-        with torch.no_grad():
-            obs = torch.FloatTensor(obs).to(self.device)
-            obs = obs.unsqueeze(0)
-            mu, _, _, _ = self.actor(
-                obs, compute_pi=False, compute_log_pi=False
-            )
-            return mu.cpu().data.numpy().flatten()
+    # def select_action(self, obs):
+        # with torch.no_grad():
+            # obs = torch.FloatTensor(obs).to(self.device)
+            # obs = obs.unsqueeze(0)
+            # mu, _, _, _ = self.actor(
+                # obs, compute_pi=False, compute_log_pi=False
+            # )
+            # mu_star = self.constraint_network(mu)
+            # return mu_star.cpu().data.numpy().flatten()
 
     def sample_action(self, obs):
         with torch.no_grad():
             obs = torch.FloatTensor(obs).to(self.device)
             obs = obs.unsqueeze(0)
-            mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
+            for _ in range(self.constraint_rnds):
+                mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
+                constraint_vec = self.constraint_network(pi)
+                if (constraint_vec > 0.0).sum() == 0:
+                    break
             return pi.cpu().data.numpy().flatten()
 
     def update_critic(self, obs, action, reward, next_obs, not_done, L, step):
@@ -225,12 +242,27 @@ class RepConstraintSACAgent(object):
         L.log('train_ae/encoder_loss', loss, step)
         return loss
 
+    def update_constraint_network(self, obs, action, reward, L, step):
+        # label the action
+        constraint_vecs = self.constraint_network(action)
+        # preds = (constraint_vecs <= 0.0).all(dim=1).to(dtype=torch.float32).unsqueeze(dim=1)
+        preds = constraint_vecs.mean(dim=1, keepdim=True)
+        labels =  ((reward - reward.mean()) > 0).to(dtype=torch.float32)
+        loss = F.mse_loss(preds, labels)
+        self.constraint_network_optimizer.zero_grad()
+        loss.backward()
+        self.constraint_network_optimizer.step()
+
+        print('Constraint Log')
+        self.constraint_network.log(L, step)
+
     def update(self, replay_buffer, L, step):
         obs, action, _, reward, next_obs, not_done = replay_buffer.sample()
 
         L.log('train/batch_reward', reward.mean(), step)
 
         self.update_critic(obs, action, reward, next_obs, not_done, L, step)
+        self.update_constraint_network(obs, action, reward, L, step)
         # transition_reward_loss = self.update_transition_reward_model(obs, action, next_obs, reward, L, step)
         encoder_loss = self.update_encoder(obs, action, reward, L, step)
         # total_loss = self.bisim_coef * encoder_loss + transition_reward_loss
