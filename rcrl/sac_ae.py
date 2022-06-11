@@ -7,7 +7,8 @@ import torch.nn.functional as F
 import os
 
 
-LOG_FREQ = 10000
+# LOG_FREQ = 10000
+LOG_FREQ = 20
 
 
 def gaussian_logprob(noise, log_std):

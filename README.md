@@ -13,3 +13,27 @@
 | train | E: 41 | S: 732 | D: 0.0 s | R: 1.4232 | BR: 0.0000 | ALOSS: 0.0000 | CLOSS: 0.0000 | RLOSS: 0.0000 | MR: 0.0000
 | eval | S: 732 | ER: 0.0000
 ```
+
+
+# TODO List
+
++ standalone encoder
++ bisimulation metric, wasserstein distance
++ contraint network
+
+```
+Traceback (most recent call last):
+  File "train.py", line 204, in <module>
+    main()
+  File "train.py", line 182, in main
+    agent.update(replay_buffer, L, step)
+  File "/home/v-tongcheng/Projects/Rep_RL/rcrl/rcsac_agent.py", line 233, in update
+    self.update_critic(obs, action, reward, next_obs, not_done, L, step)
+  File "/home/v-tongcheng/Projects/Rep_RL/rcrl/rcsac_agent.py", line 154, in update_critic
+    self.critic.log(L, step)
+  File "/home/v-tongcheng/Projects/Rep_RL/rcrl/sac_ae.py", line 174, in log
+    self.encoder.log(L, step, log_freq)
+  File "/anaconda/envs/rl/lib/python3.7/site-packages/torch/nn/modules/module.py", line 1186, in __getattr__
+    type(self).__name__, name))
+AttributeError: 'Encoder' object has no attribute 'log'
+```

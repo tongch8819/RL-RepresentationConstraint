@@ -28,9 +28,9 @@ def parse_args():
     parser.add_argument('--save_model', default=False, action='store_true')
     parser.add_argument('--save_buffer', default=False, action='store_true')
     # train
-    parser.add_argument('--num_train_steps', type=int, default=int(1e7))
+    parser.add_argument('--num_train_steps', type=int, default=int(100))
     # parser.add_argument('--agent', default='bisim', type=str, choices=['baseline', 'bisim', 'deepmdp'])
-    parser.add_argument('--init_steps', default=1000, type=int)
+    parser.add_argument('--init_steps', default=10, type=int)
     # parser.add_argument('--batch_size', default=512, type=int)
     # parser.add_argument('--hidden_dim', default=256, type=int)
     parser.add_argument('--k', default=3, type=int, help='number of steps for inverse model')

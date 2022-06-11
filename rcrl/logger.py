@@ -1,9 +1,3 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 from torch.utils.tensorboard import SummaryWriter
 from collections import defaultdict
 import json
@@ -139,6 +133,12 @@ class Logger(object):
             self.log_histogram(key + '_b', param.bias.data, step)
             if hasattr(param.bias, 'grad') and param.bias.grad is not None:
                 self.log_histogram(key + '_b_g', param.bias.grad.data, step)
+
+    def log_sequential(self, key, param, step):
+        assert type(param) is torch.nn.Sequential
+        for idx, layer in enumerate(param):
+            if isinstance(layer, torch.nn.Linear):
+                self.log_param(f'{key}_{idx}', layer, step)
 
     def log_image(self, key, image, step):
         assert key.startswith('train') or key.startswith('eval')
