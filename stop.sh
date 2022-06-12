@@ -1,0 +1,1 @@
+find exp -name "pid.txt" | xargs cat | xargs kill 

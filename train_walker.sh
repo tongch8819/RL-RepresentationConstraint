@@ -1,9 +1,9 @@
-work_dir="exp/ncs"
+work_dir="exp/walker"
 if [ ! -d $work_dir ]; then
     mkdir -p $work_dir
 fi
 python rcrl/train.py \
-ncs \
+walker \
 --work_dir $work_dir \
 --num_train_steps 1000000 \
 --log_freq 1000 \
