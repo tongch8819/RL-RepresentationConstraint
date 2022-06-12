@@ -12,6 +12,8 @@ class CSEnv:
             self.logger = get_logger(log_file_path)
 
         self.env_name = "Abstract Cloud Simulator"
+        self.current_timestep = 0
+        self.max_timestep = 500
 
     def __str__(self):
         res =  f"=== Cloud Simulator Env ===\n"
@@ -54,7 +56,8 @@ class CSEnv:
             'r_comps' : r_comps,
             'is_overflow' : is_overflow,
         }
-        done = False
+        self.current_timestep += 1
+        done = self.current_timestep > self.max_timestep
 
         next_s_arr = self.s_codec.encode_pre_transform(next_s)
 

@@ -7,6 +7,8 @@ ncs \
 --work_dir $work_dir \
 --num_train_steps 1000000 \
 --log_freq 1000 \
+--eval_freq 1000 \
+--init_steps 10000 \
 --save_model \
 --save_buffer \
 --save_tb \

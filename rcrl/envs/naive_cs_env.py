@@ -26,6 +26,7 @@ class NaiveCSEnv(CSEnv):
         log_file_path = None, 
         name_to_config = name_to_config_exp,  # KNN neighbor
     ):
+        super().__init__()
         if is_abundant:
             self.h0 = abundant_init_ava_quota 
         else:
@@ -68,6 +69,7 @@ class NaiveCSEnv(CSEnv):
 
         self.cur_state = s0
         self.action_space.cur_o = s0
+        self.current_timestep = 0
 
         # s0_arr is the input of network, so we could transform it. 
         # Under this setting, the cur_state and s_arr may look like inconsistent, but they 

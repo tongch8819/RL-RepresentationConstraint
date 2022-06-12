@@ -11,3 +11,9 @@ The log definition is in a format variable in `logger.py`.
 
 + standalone encoder
 + bisimulation metric, wasserstein distance
+
+
+1. Since naive cloud env never done, train script cannot save the current model.
+Fix it by add current step in CSEnv.
+2. When episode is done the logs for train and evaluation would occur. 
+Fix it by change debug of ncs into 1000 steps for at least one episode with done.
