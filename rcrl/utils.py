@@ -13,3 +13,4 @@ def weight_init(m):
         mid = m.weight.size(2) // 2
         gain = nn.init.calculate_gain('relu')
         nn.init.orthogonal_(m.weight.data[:, :, mid, mid], gain)
+

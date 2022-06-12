@@ -1,3 +1,4 @@
+from rcrl.envs.naive_cs_env import NaiveCSEnv
 from rcrl.rcsac_agent import RepConstraintSACAgent
 from rcrl.sac_ae import ReplayBuffer
 from rcrl.logger import Logger
@@ -16,19 +17,22 @@ def make_dir(dir_path):
     try:
         os.mkdir(dir_path)
     except OSError:
-        print("Make dir error:", dir_path)
+        # print("Make dir error:", dir_path)
+        pass
     return dir_path
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('task', type=str, help='ncs, walker')
     # misc
-    parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--work_dir', type=str, default='exp')
+    parser.add_argument('--seed', default=1, type=int)
+    parser.add_argument('--work_dir',  default='exp', type=str)
     parser.add_argument('--save_tb', default=False, action='store_true')
     parser.add_argument('--save_model', default=False, action='store_true')
     parser.add_argument('--save_buffer', default=False, action='store_true')
     # train
-    parser.add_argument('--num_train_steps', type=int, default=int(100))
+    parser.add_argument('--num_train_steps', default=100, type=int)
+    parser.add_argument('--log_freq', default=20, type=int)
     # parser.add_argument('--agent', default='bisim', type=str, choices=['baseline', 'bisim', 'deepmdp'])
     parser.add_argument('--init_steps', default=10, type=int)
     # parser.add_argument('--batch_size', default=512, type=int)
@@ -39,6 +43,8 @@ def parse_args():
     # eval
     parser.add_argument('--eval_freq', default=10, type=int)  
     parser.add_argument('--num_eval_episodes', default=20, type=int)
+    # encoder
+    parser.add_argument('--encoder_feature_dim', default=4, type=int)
     args = parser.parse_args()
     return args
     
@@ -112,13 +118,17 @@ def main():
     replay_buffer_capacity = int(1e6) 
     batch_size = 64
 
-    feature_dim = 4
-    env_name="Walker2d-v2"
-    env = gym.make(env_name)
-    eval_env = gym.make(env_name)
-    # the dmc2gym wrapper standardizes actions
-    assert env.action_space.low.min() >= -1
-    assert env.action_space.high.max() <= 1
+    if args.task == 'ncs':
+        env = NaiveCSEnv()
+        eval_env = NaiveCSEnv()
+    elif args.task == 'walker':
+        env_name="Walker2d-v2"
+        env = gym.make(env_name)
+        eval_env = gym.make(env_name)
+        assert env.action_space.low.min() >= -1
+        assert env.action_space.high.max() <= 1
+    else:
+        raise NotImplementedError
 
     replay_buffer = ReplayBuffer(
         obs_shape=env.observation_space.shape,
@@ -131,8 +141,9 @@ def main():
     agent = RepConstraintSACAgent(
         obs_shape=env.observation_space.shape[0],
         action_shape=env.action_space.shape[0],
+        log_freq=args.log_freq,
         device=device,
-        encoder_feature_dim=feature_dim,
+        encoder_feature_dim=args.encoder_feature_dim,
     )
 
     L = Logger(args.work_dir)

@@ -13,6 +13,8 @@ class RepConstraintSACAgent(object):
         self,
         obs_shape,
         action_shape,
+        log_freq,  # actor, critic, encoder, constraint log frequency
+                   # different between train and test phase
         device='cpu',
         hidden_dim=256,
         discount=0.99,
@@ -45,6 +47,7 @@ class RepConstraintSACAgent(object):
         constraint_lr=1e-3,
         constraint_rnds=10,
     ):
+        self.log_freq = log_freq
         self.device = device
         self.discount = discount
         self.critic_tau = critic_tau
@@ -73,7 +76,7 @@ class RepConstraintSACAgent(object):
         ).to(device)
 
         self.constraint_network = ConstraintNetwork(
-            act_dim=action_shape, constraint_dim=constraint_num
+            act_dim=action_shape, constraint_num=constraint_num
         ).to(device)
 
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -168,7 +171,7 @@ class RepConstraintSACAgent(object):
         critic_loss.backward()
         self.critic_optimizer.step()
 
-        self.critic.log(L, step)
+        self.critic.log(L, step, self.log_freq)
 
     def update_actor_and_alpha(self, obs, L, step):
         # detach encoder, so we don't update it with the actor loss
@@ -189,7 +192,7 @@ class RepConstraintSACAgent(object):
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        self.actor.log(L, step)
+        self.actor.log(L, step, self.log_freq)
 
         self.log_alpha_optimizer.zero_grad()
         alpha_loss = (self.alpha *
@@ -253,8 +256,7 @@ class RepConstraintSACAgent(object):
         loss.backward()
         self.constraint_network_optimizer.step()
 
-        print('Constraint Log')
-        self.constraint_network.log(L, step)
+        self.constraint_network.log(L, step, self.log_freq)
 
     def update(self, replay_buffer, L, step):
         obs, action, _, reward, next_obs, not_done = replay_buffer.sample()
@@ -296,10 +298,10 @@ class RepConstraintSACAgent(object):
         torch.save(
             self.critic.state_dict(), '%s/critic_%s.pt' % (model_dir, step)
         )
-        # torch.save(
-            # self.reward_decoder.state_dict(),
-            # '%s/reward_decoder_%s.pt' % (model_dir, step)
-        # )
+        torch.save(
+            self.constraint_network.state_dict(),
+            '%s/constraint_network_%s.pt' % (model_dir, step)
+        )
 
     def load(self, model_dir, step):
         self.actor.load_state_dict(

@@ -1,5 +1,4 @@
 import torch.nn as nn
-from rcrl.config import LOG_FREQ
 from rcrl.utils import weight_init
 
 def mlp(input_s, output_s, hidden_szs, activation=nn.ReLU):
@@ -12,9 +11,9 @@ def mlp(input_s, output_s, hidden_szs, activation=nn.ReLU):
     return nn.Sequential(*layers[:-1])  # remove last unnecessary activation
 
 class ConstraintNetwork(nn.Module):
-    def __init__(self, act_dim, constraint_dim, hidden_szs=[64,64]):
+    def __init__(self, act_dim, constraint_num, hidden_szs=[64,64]):
         super().__init__()    # don't miss the parent class initialization
-        self.fc = mlp(act_dim, constraint_dim, hidden_szs)
+        self.fc = mlp(act_dim, constraint_num, hidden_szs)
         self.softmax = nn.Softmax(dim=1)
 
         self.outputs = dict()
@@ -27,7 +26,7 @@ class ConstraintNetwork(nn.Module):
         self.outputs['softmax'] = out
         return out
 
-    def log(self, L, step, log_freq=LOG_FREQ):
+    def log(self, L, step, log_freq):
         if step % log_freq != 0:
             return
 
@@ -38,8 +37,8 @@ class ConstraintNetwork(nn.Module):
 
 def main():
     act_dim = 10 
-    constraint_dim = 3
-    net = ConstraintNetwork(act_dim, constraint_dim)
+    constraint_num = 3
+    net = ConstraintNetwork(act_dim, constraint_num)
     print(net)
 
 if __name__ == "__main__":
