@@ -1,4 +1,4 @@
-python rcrl/train.py \
+python rcrl/train_v2.py \
 ncs \
 --work_dir exp/ncs \
 --num_train_steps 1000 \

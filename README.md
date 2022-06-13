@@ -9,6 +9,8 @@ The log definition is in a format variable in `logger.py`.
 
 # TODO List
 
++ walker baseline training
++ deep mdp baseline 
 + standalone encoder
 + bisimulation metric, wasserstein distance
 
@@ -17,3 +19,5 @@ The log definition is in a format variable in `logger.py`.
 Fix it by add current step in CSEnv.
 2. When episode is done the logs for train and evaluation would occur. 
 Fix it by change debug of ncs into 1000 steps for at least one episode with done.
+3. In walker task log frequency is too long to show enough information in tensorboard
+Try to fix it by change log frequency in training of walker from 1000 into 100.
