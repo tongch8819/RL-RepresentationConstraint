@@ -41,6 +41,7 @@ def run_one_round(seed, models : dict, verbose=False, save_action_hist=None, dum
     for i in range(total_steps):
         # Take deterministic actions at test time 
         a = get_action(o, models)
+        a = np.clip(a, a_max=1.0, a_min=0.0)
         o, r, d, info = env.step(a)
         dr = get_system_dr(env.cur_state)
         dr_hist.append(dr)
@@ -82,6 +83,7 @@ def run_one_round(seed, models : dict, verbose=False, save_action_hist=None, dum
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('work_dir', type=str, help="")
+    parser.add_argument('--step', type=int, help="step to specify model file", default=0)
     parser.add_argument('--dump_data_path', type=str, help="", default=None)
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--verbose', '-v', action='count', help='')
@@ -93,7 +95,7 @@ def main():
         sen_arg = list(map(float, args.sensitivity_tpl.split(',')))
     else:
         sen_arg = None
-    models = load_model(args.work_dir)
+    models = load_model(args.work_dir, step=args.step)
     cache = run_one_round(seed=args.seed, models=models, 
         verbose=args.verbose, save_action_hist=args.save_action_hist, 
         dump_data_path=args.dump_data_path,

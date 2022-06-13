@@ -4,7 +4,7 @@ from rcrl.envs.naive_cs_env import NaiveCSEnv
 import torch
 import os.path as osp
 
-def load_model(work_dir):
+def load_model(work_dir, step=0):
     # arbitrary re-construction network should be consistent with train.py
     encoder_feature_dim = 4
     
@@ -20,7 +20,7 @@ def load_model(work_dir):
         hidden_dim, num_layers,
         actor_log_std_min, actor_log_std_max
     )
-    actor.load_state_dict(torch.load(osp.join(work_dir, 'model/actor_0.pt')))
+    actor.load_state_dict(torch.load(osp.join(work_dir, f'model/actor_{step}.pt')))
     actor.eval()  # make sure some layers like dropout and batch normalization are in evaluation mode
 
     constraint_network = ConstraintNetwork(

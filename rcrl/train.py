@@ -110,7 +110,7 @@ def make_agent(obs_shape, action_shape, args, device):
 def main():
     args = parse_args()
     set_seed_everywhere(args.seed)
-
+    make_dir(args.work_dir)
     with open(os.path.join(args.work_dir, 'args.json'), 'w') as f:
         json.dump(vars(args), f, sort_keys=True, indent=4)
 
